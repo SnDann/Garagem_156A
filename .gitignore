@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+*.sqlite3
+garagem156a.db
+
+# Node
+node_modules/
+build/
+.DS_Store
+npm-debug.log
+
+# IDEs
+.idea/
+.vscode/

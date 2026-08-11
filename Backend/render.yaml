@@ -1,0 +1,23 @@
+# Render service manifest for deploying the Backend (Flask) with a Postgres database
+services:
+  - type: web
+    name: garagem-156a-backend
+    env: python
+    region: oregon
+    plan: starter
+    repo: "https://github.com/<YOUR_GITHUB_USER>/<YOUR_REPO>"
+    branch: main
+    buildCommand: "pip install -r Backend/requirements.txt"
+    startCommand: "gunicorn -w 4 -b 0.0.0.0:$PORT app:app"
+    envVars:
+      - key: DATABASE_URL
+        value: "REPLACE_WITH_RENDER_DATABASE_URL"
+        sync: false
+      - key: SECRET_KEY
+        value: "REPLACE_WITH_SECRET_KEY"
+        sync: false
+
+databases:
+  - name: garagem-156a-db
+    engine: postgresql
+    plan: starter
