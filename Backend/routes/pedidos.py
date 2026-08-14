@@ -1,20 +1,9 @@
-from contextlib import contextmanager
 from flask import Blueprint, jsonify, request
-from models import Pedido, SessionLocal
+from database import get_db
+from middleware.auth import token_required
+from models import Pedido
 
 bp = Blueprint('pedidos', __name__)
-
-
-@contextmanager
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
 
 
 def _serialize_pedido(pedido):
@@ -32,6 +21,7 @@ def _serialize_pedido(pedido):
 
 
 @bp.route('/pedidos', methods=['GET'])
+@token_required
 def listar_pedidos():
     with get_db() as db:
         pedidos = db.query(Pedido).all()
@@ -39,6 +29,7 @@ def listar_pedidos():
 
 
 @bp.route('/pedidos/<int:pedido_id>', methods=['GET'])
+@token_required
 def obter_pedido(pedido_id):
     with get_db() as db:
         pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
@@ -48,6 +39,7 @@ def obter_pedido(pedido_id):
 
 
 @bp.route('/pedidos', methods=['POST'])
+@token_required
 def criar_pedido():
     payload = request.get_json(silent=True) or {}
     if not payload.get('cliente_id'):
@@ -69,6 +61,7 @@ def criar_pedido():
 
 
 @bp.route('/pedidos/<int:pedido_id>', methods=['PUT'])
+@token_required
 def atualizar_pedido(pedido_id):
     payload = request.get_json(silent=True) or {}
     with get_db() as db:
@@ -85,6 +78,7 @@ def atualizar_pedido(pedido_id):
 
 
 @bp.route('/pedidos/<int:pedido_id>', methods=['DELETE'])
+@token_required
 def deletar_pedido(pedido_id):
     with get_db() as db:
         pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()

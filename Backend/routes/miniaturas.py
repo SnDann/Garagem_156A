@@ -1,17 +1,15 @@
 from flask import Blueprint, jsonify, request
-from models import Miniatura, SessionLocal
+from database import get_db
+from middleware.auth import token_required
+from models import Miniatura
 
 bp = Blueprint('miniaturas', __name__)
 
 
-def _session():
-    return SessionLocal()
-
-
 @bp.route('/miniaturas', methods=['GET'])
+@token_required
 def listar_miniaturas():
-    db = _session()
-    try:
+    with get_db() as db:
         miniaturas = db.query(Miniatura).all()
         return jsonify([{
             'id': m.id,
@@ -24,19 +22,17 @@ def listar_miniaturas():
             'quantidade': m.quantidade,
             'ativo': m.ativo
         } for m in miniaturas]), 200
-    finally:
-        db.close()
 
 
 @bp.route('/miniaturas', methods=['POST'])
+@token_required
 def criar_miniatura():
     payload = request.get_json(silent=True) or {}
     required = ['nome', 'marca', 'escala', 'preco_custo', 'preco_venda', 'quantidade']
     if not all(field in payload for field in required):
         return jsonify({'error': 'campos obrigatórios ausentes'}), 400
 
-    db = _session()
-    try:
+    with get_db() as db:
         miniatura = Miniatura(
             nome=payload['nome'],
             marca=payload['marca'],
@@ -55,15 +51,13 @@ def criar_miniatura():
         db.commit()
         db.refresh(miniatura)
         return jsonify({'id': miniatura.id, 'nome': miniatura.nome}), 201
-    finally:
-        db.close()
 
 
 @bp.route('/miniaturas/<int:miniatura_id>', methods=['PUT'])
+@token_required
 def atualizar_miniatura(miniatura_id):
     payload = request.get_json(silent=True) or {}
-    db = _session()
-    try:
+    with get_db() as db:
         miniatura = db.query(Miniatura).filter(Miniatura.id == miniatura_id).first()
         if not miniatura:
             return jsonify({'error': 'miniatura não encontrada'}), 404
@@ -72,19 +66,15 @@ def atualizar_miniatura(miniatura_id):
                 setattr(miniatura, field, payload[field])
         db.commit()
         return jsonify({'id': miniatura.id, 'nome': miniatura.nome}), 200
-    finally:
-        db.close()
 
 
 @bp.route('/miniaturas/<int:miniatura_id>', methods=['DELETE'])
+@token_required
 def deletar_miniatura(miniatura_id):
-    db = _session()
-    try:
+    with get_db() as db:
         miniatura = db.query(Miniatura).filter(Miniatura.id == miniatura_id).first()
         if not miniatura:
             return jsonify({'error': 'miniatura não encontrada'}), 404
         db.delete(miniatura)
         db.commit()
         return jsonify({'message': 'miniatura removida'}), 200
-    finally:
-        db.close()

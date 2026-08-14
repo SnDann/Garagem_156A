@@ -1,23 +1,13 @@
-from contextlib import contextmanager
 from flask import Blueprint, jsonify, request
-from models import Cliente, SessionLocal
+from database import get_db
+from middleware.auth import token_required
+from models import Cliente
 
 bp = Blueprint('clientes', __name__)
 
 
-@contextmanager
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-
 @bp.route('/clientes', methods=['GET'])
+@token_required
 def listar_clientes():
     with get_db() as db:
         clientes = db.query(Cliente).all()
@@ -31,6 +21,7 @@ def listar_clientes():
 
 
 @bp.route('/clientes', methods=['POST'])
+@token_required
 def criar_cliente():
     payload = request.get_json(silent=True) or {}
     if not payload.get('nome') or not payload.get('email') or not payload.get('telefone'):
@@ -54,6 +45,7 @@ def criar_cliente():
 
 
 @bp.route('/clientes/<int:cliente_id>', methods=['GET'])
+@token_required
 def obter_cliente(cliente_id):
     with get_db() as db:
         cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
@@ -69,20 +61,23 @@ def obter_cliente(cliente_id):
 
 
 @bp.route('/clientes/<int:cliente_id>', methods=['PUT'])
+@token_required
 def atualizar_cliente(cliente_id):
     payload = request.get_json(silent=True) or {}
     with get_db() as db:
         cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
         if not cliente:
             return jsonify({'error': 'cliente não encontrado'}), 404
-        for field in ['nome', 'email', 'telefone', 'cpf', 'endereco', 'cidade', 'estado', 'cep']:
-            if field in payload:
-                setattr(cliente, field, payload[field])
+        ALLOWED_FIELDS = {'nome', 'email', 'telefone', 'cpf', 'endereco', 'cidade', 'estado', 'cep', 'observacoes'}
+        for field, value in payload.items():
+            if field in ALLOWED_FIELDS:
+                setattr(cliente, field, value)
         db.commit()
         return jsonify({'id': cliente.id, 'nome': cliente.nome}), 200
 
 
 @bp.route('/clientes/<int:cliente_id>', methods=['DELETE'])
+@token_required
 def deletar_cliente(cliente_id):
     with get_db() as db:
         cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()

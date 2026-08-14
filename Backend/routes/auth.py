@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from models import SessionLocal, Usuario
+from models import Usuario
+from database import get_db
 from security import create_access_token, hash_password, verify_password
 
 bp = Blueprint('auth', __name__)
@@ -14,8 +15,7 @@ def login():
     if not email or not password:
         return jsonify({'error': 'Email e senha são obrigatórios'}), 400
 
-    db = SessionLocal()
-    try:
+    with get_db() as db:
         user = db.query(Usuario).filter(Usuario.email == email).first()
         if not user or not user.is_active or not verify_password(password, user.password_hash):
             return jsonify({'error': 'Email ou senha inválidos'}), 401
@@ -31,8 +31,6 @@ def login():
                 'is_admin': user.is_admin,
             }
         }), 200
-    finally:
-        db.close()
 
 
 @bp.route('/auth/register', methods=['POST'])
@@ -41,8 +39,7 @@ def register():
     if not payload.get('nome') or not payload.get('email') or not payload.get('password'):
         return jsonify({'error': 'nome, email e senha são obrigatórios'}), 400
 
-    db = SessionLocal()
-    try:
+    with get_db() as db:
         total_users = db.query(Usuario).count()
         if total_users > 0:
             return jsonify({'error': 'Criação de usuário desativada após o primeiro registro'}), 403
@@ -61,5 +58,3 @@ def register():
         db.commit()
         db.refresh(user)
         return jsonify({'id': user.id, 'email': user.email, 'nome': user.nome}), 201
-    finally:
-        db.close()

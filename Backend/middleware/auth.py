@@ -11,7 +11,13 @@ def token_required(f):
         if not auth_header:
             return jsonify({'error': 'Token ausente'}), 401
 
-        token = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header
+        parts = auth_header.split(" ")
+        if auth_header.startswith("Bearer "):
+            if len(parts) < 2 or not parts[1]:
+                return jsonify({'error': 'Token inválido'}), 401
+            token = parts[1]
+        else:
+            token = auth_header
 
         try:
             data = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
