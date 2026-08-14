@@ -2,7 +2,7 @@
   "$schema": "./.vscode/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "python -m pip install --upgrade pip && python -m pip install -r Backend/requirements.txt && npm --prefix Frontend install && npm --prefix Frontend run build"
+    "buildCommand": "python -m pip install --upgrade pip && python -m pip install -r Backend/requirements.txt"
   },
   "deploy": {
     "startCommand": "gunicorn --chdir Backend --bind 0.0.0.0:$PORT \"app:create_app()\"",
